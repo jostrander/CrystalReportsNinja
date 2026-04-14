@@ -10,38 +10,32 @@ namespace CrystalReportsNinja
         public string ParameterValue { get; set; }
     }
 
-    public class ParameterCore : IDisposable
+    public class ParameterCore
     {
         private List<UserParameter> _userParams;
         private LogWriter _logger;
         private List<string> _parameterCollection;
 
-        public ParameterCore(string logfilename, ArgumentContainer _ArgumentContainer)
+        public ParameterCore(LogWriter logger, ArgumentContainer argumentContainer)
         {
             _userParams = new List<UserParameter>();
-            _parameterCollection = _ArgumentContainer.ParameterCollection;
-            _logger = new LogWriter(logfilename, _ArgumentContainer.EnableLogToConsole);
-        }
-
-        public void Dispose()
-        {
-            if (_logger != null)
-            {
-                _logger.Dispose();
-                _logger = null;
-            }
+            _parameterCollection = argumentContainer.ParameterCollection;
+            _logger = logger;
         }
 
         public void ProcessRawParameters()
         {
             foreach (string input in _parameterCollection)
             {
+                int colonIndex = input.IndexOf(":");
+                if (colonIndex == -1)
+                    throw new System.Exception(string.Format("Invalid parameter format '{0}'. Expected format: \"name:value\"", input));
+
                 _userParams.Add(new UserParameter
                 {
-                    ParameterName = input.Substring(0, input.IndexOf(":")),
-                    ParameterValue = (input.Substring(input.IndexOf(":") + 1, input.Length - (input.IndexOf(":") + 1)))
-                }
-                );
+                    ParameterName = input.Substring(0, colonIndex),
+                    ParameterValue = input.Substring(colonIndex + 1)
+                });
             }
             _logger.Write(string.Format("Number of Parameters passed by the users script = {0}", _userParams.Count));
         }
@@ -54,7 +48,6 @@ namespace CrystalReportsNinja
         public ParameterValues GetParameterValues(ParameterFieldDefinition ParameterDef)
         {
             ParameterValues paramValues = new ParameterValues();
-            //ParameterValue paramValue;
 
             for (int j = 0; j < _userParams.Count; j++)
             {
@@ -103,11 +96,10 @@ namespace CrystalReportsNinja
         /// <returns></returns>
         private ParameterValue GetSingleParamValue(DiscreteOrRangeKind paraType, string paraInputText, string paraName)
         {
-            ParameterValues paraValues = new ParameterValues();
-            bool isDiscreateType = paraType == DiscreteOrRangeKind.DiscreteValue ? true : false;
-            bool isDiscreateAndRangeType = paraType == DiscreteOrRangeKind.DiscreteAndRangeValue ? true : false;
-            bool isRangeType = paraType == DiscreteOrRangeKind.RangeValue ? true : false;
-            bool paraTextIsRange = paraInputText.IndexOf("(") != -1 ? true : false;
+            bool isDiscreateType = paraType == DiscreteOrRangeKind.DiscreteValue;
+            bool isDiscreateAndRangeType = paraType == DiscreteOrRangeKind.DiscreteAndRangeValue;
+            bool isRangeType = paraType == DiscreteOrRangeKind.RangeValue;
+            bool paraTextIsRange = paraInputText != null && paraInputText.IndexOf("(") != -1;
 
             if (isDiscreateType || (isDiscreateAndRangeType && !paraTextIsRange))
             {

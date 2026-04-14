@@ -1,9 +1,6 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CrystalReportsNinja
 {
@@ -185,8 +182,6 @@ namespace CrystalReportsNinja
             PrintCopy = 1;
             PrinterName = Properties.Settings.Default.Default_Printer_Name;
             Refresh = true;
-            ///SelectionFormula = null;
-            ///Culture = null;
             
             //SQL Server Config
             ServerName = Properties.Settings.Default.SQL_Server_Name;

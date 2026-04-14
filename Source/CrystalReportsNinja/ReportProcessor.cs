@@ -67,28 +67,25 @@ namespace CrystalReportsNinja
         /// </summary>
         private void ProcessParameters()
         {
-            var paramCount = _reportDoc.ParameterFields.Count;
             _logger.Write(string.Format("Number of Parameters detected in the report = {0}", _reportDoc.ParameterFields.Count));
             if (_reportDoc.DataDefinition.ParameterFields.Count > 0)
             {
-                using (ParameterCore paraCore = new ParameterCore(ReportArguments.LogFileName, ReportArguments))
+                ParameterCore paraCore = new ParameterCore(_logger, ReportArguments);
+                paraCore.ProcessRawParameters();
+                _logger.Write(string.Format(""));
+                foreach (ParameterFieldDefinition _ParameterFieldDefinition in _reportDoc.DataDefinition.ParameterFields)
                 {
-                    paraCore.ProcessRawParameters();
-                    _logger.Write(string.Format(""));
-                    foreach (ParameterFieldDefinition _ParameterFieldDefinition in _reportDoc.DataDefinition.ParameterFields)
+                    if (!_ParameterFieldDefinition.IsLinked())
                     {
-                        if (!_ParameterFieldDefinition.IsLinked())
-                        {
-                            _logger.Write(string.Format("Applied Parameter '{0}' as MultiValue '{1}'", _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
-                            ParameterValues values = paraCore.GetParameterValues(_ParameterFieldDefinition);
-                            _ParameterFieldDefinition.ApplyCurrentValues(values);
-                        }
-                        else
-                        {
-                            _logger.Write(string.Format("Skipped '{1}' as MultiValue '{2}' Parameter in SubReport = '{0}' as its Linked to Main Report", _ParameterFieldDefinition.ReportName, _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
-                        }
-                        _logger.Write(string.Format(""));
+                        _logger.Write(string.Format("Applied Parameter '{0}' as MultiValue '{1}'", _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
+                        ParameterValues values = paraCore.GetParameterValues(_ParameterFieldDefinition);
+                        _ParameterFieldDefinition.ApplyCurrentValues(values);
                     }
+                    else
+                    {
+                        _logger.Write(string.Format("Skipped '{1}' as MultiValue '{2}' Parameter in SubReport = '{0}' as its Linked to Main Report", _ParameterFieldDefinition.ReportName, _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
+                    }
+                    _logger.Write(string.Format(""));
                 }
             }
         }
@@ -118,8 +115,8 @@ namespace CrystalReportsNinja
             _outputFormat = ReportArguments.OutputFormat;
             _printToPrinter = ReportArguments.PrintOutput;
 
-            bool specifiedFileName = _outputFilename != null ? true : false;
-            bool specifiedFormat = _outputFormat != null ? true : false;
+            bool specifiedFileName = _outputFilename != null;
+            bool specifiedFormat = _outputFormat != null;
 
             if (!_printToPrinter)
             {
@@ -214,7 +211,6 @@ namespace CrystalReportsNinja
                            { logonInfo.ConnectionInfo.UserID = ReportArguments.UserName; }
                            if (!String.IsNullOrWhiteSpace(ReportArguments.Password))
                            { logonInfo.ConnectionInfo.Password = ReportArguments.Password; }
-                           ///_logger.Write(string.Format("Logging into {1} Database on {0} with User id: {2} and PW: {3} with Integrated Security = {4}", logonInfo.ConnectionInfo.ServerName, logonInfo.ConnectionInfo.DatabaseName, logonInfo.ConnectionInfo.UserID, logonInfo.ConnectionInfo.Password, logonInfo.ConnectionInfo.IntegratedSecurity));
                            _logger.Write(string.Format("Logging into {1} Database on {0} with User id: {2} with Integrated Security = {3}", logonInfo.ConnectionInfo.ServerName, logonInfo.ConnectionInfo.DatabaseName, logonInfo.ConnectionInfo.UserID, logonInfo.ConnectionInfo.IntegratedSecurity));
                        }
                     table.ApplyLogOnInfo(logonInfo);
@@ -326,7 +322,7 @@ namespace CrystalReportsNinja
         private void PerformRefresh()
         {
             bool toRefresh = ReportArguments.Refresh;
-            bool noParameter = (_reportDoc.ParameterFields.Count == 0) ? true : false;
+            bool noParameter = _reportDoc.ParameterFields.Count == 0;
 
             if (toRefresh && noParameter)
                 _reportDoc.Refresh();
@@ -356,6 +352,11 @@ namespace CrystalReportsNinja
 
                 if (ReportArguments.EmailOutput)
                 {
+                    if (String.IsNullOrWhiteSpace(ReportArguments.MailTo))
+                        throw new Exception("Email output is enabled but no recipient (-MT) was specified");
+                    if (String.IsNullOrWhiteSpace(ReportArguments.SmtpServer))
+                        throw new Exception("Email output is enabled but no SMTP server (-MSA) was specified");
+
                     using (MailMessage _MailMessage = new MailMessage())
                     {
                         _MailMessage.Attachments.Add(new Attachment(_outputFilename));
