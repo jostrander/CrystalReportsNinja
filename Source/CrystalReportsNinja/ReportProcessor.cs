@@ -33,11 +33,10 @@ namespace CrystalReportsNinja
         /// </summary>
         private void LoadReport()
         {
-            _sourceFilename = ReportArguments.ReportPath.Trim();
-            if (_sourceFilename == null || _sourceFilename == string.Empty)
-            {
+            if (String.IsNullOrWhiteSpace(ReportArguments.ReportPath))
                 throw new Exception("Invalid Crystal Reports file");
-            }
+
+            _sourceFilename = ReportArguments.ReportPath.Trim();
 
             if (_sourceFilename.LastIndexOf(".rpt") == -1)
                 throw new Exception("Invalid Crystal Reports file");
@@ -62,14 +61,16 @@ namespace CrystalReportsNinja
                 foreach (ParameterFieldDefinition _ParameterFieldDefinition in _reportDoc.DataDefinition.ParameterFields)
                 {
                     if (!_ParameterFieldDefinition.IsLinked())
-                        {
-                            _logger.Write(string.Format("Applied Parameter '{0}' as MultiValue '{1}'", _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
-                            ParameterValues values = paraCore.GetParameterValues(_ParameterFieldDefinition);
-                            _ParameterFieldDefinition.ApplyCurrentValues(values);
-                        }
+                    {
+                        _logger.Write(string.Format("Applied Parameter '{0}' as MultiValue '{1}'", _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
+                        ParameterValues values = paraCore.GetParameterValues(_ParameterFieldDefinition);
+                        _ParameterFieldDefinition.ApplyCurrentValues(values);
+                    }
                     else
+                    {
                         _logger.Write(string.Format("Skipped '{1}' as MultiValue '{2}' Parameter in SubReport = '{0}' as its Linked to Main Report", _ParameterFieldDefinition.ReportName, _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
-                        _logger.Write(string.Format(""));
+                    }
+                    _logger.Write(string.Format(""));
                 }
             }
         }
@@ -106,10 +107,11 @@ namespace CrystalReportsNinja
             {
                 string fileExt = "";
 
-                //default set to text file
                 if (!specifiedFileName && !specifiedFormat)
+                {
                     _outputFormat = "txt";
-                	fileExt = "txt";
+                    fileExt = "txt";
+                }
                 // Use output format to set output file name extension
                 if (specifiedFormat)
                 {
@@ -240,6 +242,9 @@ namespace CrystalReportsNinja
             }
             else
             {
+                if (String.IsNullOrEmpty(_outputFormat))
+                    throw new Exception("No output format specified and could not be determined from filename");
+
                 if (_outputFormat.ToUpper() == "RTF")
                     _reportDoc.ExportOptions.ExportFormatType = ExportFormatType.RichText;
                 else if (_outputFormat.ToUpper() == "TXT")
@@ -250,8 +255,6 @@ namespace CrystalReportsNinja
                 {
                     CharacterSeparatedValuesFormatOptions csvExpOpts = new CharacterSeparatedValuesFormatOptions();
                     csvExpOpts.ExportMode = CsvExportMode.Standard;
-                    csvExpOpts.GroupSectionsOption = CsvExportSectionsOption.Export;
-                    csvExpOpts.ReportSectionsOption = CsvExportSectionsOption.Export;
                     csvExpOpts.GroupSectionsOption = CsvExportSectionsOption.ExportIsolated;
                     csvExpOpts.ReportSectionsOption = CsvExportSectionsOption.ExportIsolated;
                     csvExpOpts.SeparatorText = ",";
@@ -410,14 +413,17 @@ namespace CrystalReportsNinja
             }
             catch (Exception ex)
             {
-                _logger.Write(string.Format(""));
-                _logger.Write(string.Format("===================Logs and Errors ================================="));
-                _logger.Write(string.Format("Message: {0}", ex.Message));
-                _logger.Write(string.Format("HResult: {0}", ex.HResult));
-                _logger.Write(string.Format("Data: {0}", ex.Data));
-				_logger.Write(string.Format("Inner Exception: {0}", ex.InnerException));
-                _logger.Write(string.Format("StackTrace: {0}", ex.StackTrace));
-                _logger.Write(string.Format("===================================================================="));
+                if (_logger != null)
+                {
+                    _logger.Write(string.Format(""));
+                    _logger.Write(string.Format("===================Logs and Errors ================================="));
+                    _logger.Write(string.Format("Message: {0}", ex.Message));
+                    _logger.Write(string.Format("HResult: {0}", ex.HResult));
+                    _logger.Write(string.Format("Data: {0}", ex.Data));
+                    _logger.Write(string.Format("Inner Exception: {0}", ex.InnerException));
+                    _logger.Write(string.Format("StackTrace: {0}", ex.StackTrace));
+                    _logger.Write(string.Format("===================================================================="));
+                }
                 throw;
             }
             finally

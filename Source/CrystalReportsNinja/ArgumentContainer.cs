@@ -238,8 +238,6 @@ namespace CrystalReportsNinja
                             UserName = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-P")
                             Password = parameters[i + 1];
-                        else if (parameters[i].Equals("-I"))
-                            IntegratedSecurity = true;
                         else if (parameters[i].ToUpper() == "-F")
                             ReportPath = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-O")
@@ -254,19 +252,11 @@ namespace CrystalReportsNinja
                             PrinterName = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-C")
                         {
-                            try
-                            {
-                                PrintCopy = Convert.ToInt32(parameters[i + 1]);
-                            }
-                            catch (Exception ex)
-                            { throw ex; }
+                            PrintCopy = Convert.ToInt32(parameters[i + 1]);
                         }
                         else if (parameters[i].ToUpper() == "-A")
                             ParameterCollection.Add(parameters[i + 1]);
 
-                        //Email Config
-                        else if (parameters[i].ToUpper() == "-M")
-                            EmailOutput = true;                        
                         else if (parameters[i].ToUpper() == "-MF")
                             MailFrom = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-MN")
@@ -281,16 +271,10 @@ namespace CrystalReportsNinja
                             MailCC = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-MB")
                             MailBcc = parameters[i + 1];
-                        else if (parameters[i].ToUpper() == "-MK")
-                            EmailKeepFile = true;
                         else if (parameters[i].ToUpper() == "-MSA")
                             SmtpServer = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-MSP")
                             SmtpPort = Convert.ToInt32(parameters[i + 1]);
-                        else if (parameters[i].ToUpper() == "-MSE")
-                            SmtpSSL = true;
-                        else if (parameters[i].ToUpper() == "-MSC")
-                            SmtpAuth = true;
                         else if (parameters[i].ToUpper() == "-MUN")
                             SmtpUN = parameters[i + 1];
                         else if (parameters[i].ToUpper() == "-MPW")
@@ -302,6 +286,21 @@ namespace CrystalReportsNinja
 
                 if (parameters[i] == "-?" || parameters[i] == "/?" || parameters[i] == "?")
                     GetHelp = true;
+
+                if (parameters[i].Equals("-I"))
+                    IntegratedSecurity = true;
+
+                if (parameters[i].ToUpper() == "-M")
+                    EmailOutput = true;
+
+                if (parameters[i].ToUpper() == "-MK")
+                    EmailKeepFile = true;
+
+                if (parameters[i].ToUpper() == "-MSE")
+                    SmtpSSL = true;
+
+                if (parameters[i].ToUpper() == "-MSC")
+                    SmtpAuth = true;
 
                 if (parameters[i].ToUpper() == "-L")
                     EnableLog = true;
