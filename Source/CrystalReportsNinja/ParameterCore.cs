@@ -102,6 +102,11 @@ namespace CrystalReportsNinja
 
             if (isDiscreateType || (isDiscreateAndRangeType && !paraTextIsRange))
             {
+                if (paraInputText == "")
+                {
+                    paraInputText = null;
+                    _logger.Write(string.Format("Setting value to Null"));
+                }
                 var paraValue = new ParameterDiscreteValue()
                 {
                     Value = paraInputText
