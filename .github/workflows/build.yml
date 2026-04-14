@@ -12,13 +12,13 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Cache Chocolatey packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             C:\Users\runneradmin\AppData\Local\Temp\chocolatey
@@ -37,7 +37,7 @@ jobs:
         run: msbuild CrystalReportsNinja.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CrystalReportsNinja
           path: Source/CrystalReportsNinja/bin/Release/
