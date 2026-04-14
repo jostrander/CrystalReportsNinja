@@ -16,14 +16,14 @@ namespace CrystalReportsNinja
                     Helper.ShowHelpMessage();
                 else
                 {
-                    string _logFilename = string.Empty;
-
                     if (argContainer.EnableLog)
-                        argContainer.LogFileName = "ninja-" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".log";
+                        argContainer.LogFileName = "ninja-" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".log";
 
-                    ReportProcessor reportNinja = new ReportProcessor();
-                    reportNinja.ReportArguments = argContainer;
-                    reportNinja.Run();
+                    using (ReportProcessor reportNinja = new ReportProcessor())
+                    {
+                        reportNinja.ReportArguments = argContainer;
+                        reportNinja.Run();
+                    }
                 }
             }
             catch (Exception ex)

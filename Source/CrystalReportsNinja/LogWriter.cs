@@ -1,48 +1,56 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Diagnostics;
 
 namespace CrystalReportsNinja
 {
-    public class LogWriter
+    public class LogWriter : IDisposable
     {
-        private static string _progDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\";
-        private static string _logFilename;
-        private static Boolean _LogToConsole;
+        private string _logFilename;
+        private bool _logToConsole;
+        private StreamWriter _writer;
+        private bool _disposed;
 
-        public LogWriter(string filename, Boolean logToConsole)
+        private static string _progDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\";
+
+        public LogWriter(string filename, bool logToConsole)
         {
             _logFilename = filename;
+            _logToConsole = logToConsole;
 
-            _LogToConsole = logToConsole;
+            if (_logFilename.Length > 0)
+            {
+                string fullPath = _progDir + _logFilename;
+                _writer = new StreamWriter(fullPath, append: true);
+                _writer.AutoFlush = true;
+            }
         }
 
         public void Write(string text)
         {
-            Trace.WriteLine(string.Format("{0}\t{1}\t{2}", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH:mm:ss"), text));
+            string line = string.Format("{0}\t{1}\t{2}", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH:mm:ss"), text);
 
-            if (_logFilename.Length > 0)
+            Trace.WriteLine(line);
+
+            if (_writer != null)
+                _writer.WriteLine(line);
+
+            if (_logToConsole)
+                Console.WriteLine(line);
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
             {
-                StreamWriter writer;
-
-                if (!File.Exists(_progDir + _logFilename))
-                    writer = File.CreateText(_progDir + _logFilename);
-                else
-                    writer = File.AppendText(_progDir + _logFilename);
-
-                string date, time;
-                date = DateTime.Now.ToString("dd-MM-yyyy");
-                time = DateTime.Now.ToString("HH:mm:ss");
-                                
-                writer.WriteLine(string.Format("{0}\t{1}\t{2}", date, time, text));
-                writer.Close();
-                writer.Dispose();
+                _disposed = true;
+                if (_writer != null)
+                {
+                    _writer.Flush();
+                    _writer.Dispose();
+                    _writer = null;
+                }
             }
-
-            if (_LogToConsole)
-            {
-                Console.WriteLine(string.Format("{0}\t{1}\t{2}", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH:mm:ss"), text));
-            }            
         }
     }
 }

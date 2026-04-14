@@ -10,7 +10,7 @@ namespace CrystalReportsNinja
         public string ParameterValue { get; set; }
     }
 
-    public class ParameterCore
+    public class ParameterCore : IDisposable
     {
         private List<UserParameter> _userParams;
         private LogWriter _logger;
@@ -21,6 +21,15 @@ namespace CrystalReportsNinja
             _userParams = new List<UserParameter>();
             _parameterCollection = _ArgumentContainer.ParameterCollection;
             _logger = new LogWriter(logfilename, _ArgumentContainer.EnableLogToConsole);
+        }
+
+        public void Dispose()
+        {
+            if (_logger != null)
+            {
+                _logger.Dispose();
+                _logger = null;
+            }
         }
 
         public void ProcessRawParameters()

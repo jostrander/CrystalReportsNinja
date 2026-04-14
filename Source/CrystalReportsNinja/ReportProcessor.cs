@@ -6,26 +6,42 @@ using System.Net.Mail;
 
 namespace CrystalReportsNinja
 {
-    public class ReportProcessor
+    public class ReportProcessor : IDisposable
     {
         private string _sourceFilename;
         private string _outputFilename;
         private string _outputFormat;
         private bool _printToPrinter;
+        private bool _disposed;
 
         private ReportDocument _reportDoc;
         private LogWriter _logger;
 
         public ArgumentContainer ReportArguments { get; set; }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
         public ReportProcessor()
         {
             ReportArguments = new ArgumentContainer();
-
             _reportDoc = new ReportDocument();
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                if (_reportDoc != null)
+                {
+                    _reportDoc.Close();
+                    _reportDoc.Dispose();
+                    _reportDoc = null;
+                }
+                if (_logger != null)
+                {
+                    _logger.Dispose();
+                    _logger = null;
+                }
+            }
         }
 
         /// <summary>
@@ -55,22 +71,24 @@ namespace CrystalReportsNinja
             _logger.Write(string.Format("Number of Parameters detected in the report = {0}", _reportDoc.ParameterFields.Count));
             if (_reportDoc.DataDefinition.ParameterFields.Count > 0)
             {
-                ParameterCore paraCore = new ParameterCore(ReportArguments.LogFileName, ReportArguments);
-                paraCore.ProcessRawParameters();
-                _logger.Write(string.Format(""));
-                foreach (ParameterFieldDefinition _ParameterFieldDefinition in _reportDoc.DataDefinition.ParameterFields)
+                using (ParameterCore paraCore = new ParameterCore(ReportArguments.LogFileName, ReportArguments))
                 {
-                    if (!_ParameterFieldDefinition.IsLinked())
-                    {
-                        _logger.Write(string.Format("Applied Parameter '{0}' as MultiValue '{1}'", _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
-                        ParameterValues values = paraCore.GetParameterValues(_ParameterFieldDefinition);
-                        _ParameterFieldDefinition.ApplyCurrentValues(values);
-                    }
-                    else
-                    {
-                        _logger.Write(string.Format("Skipped '{1}' as MultiValue '{2}' Parameter in SubReport = '{0}' as its Linked to Main Report", _ParameterFieldDefinition.ReportName, _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
-                    }
+                    paraCore.ProcessRawParameters();
                     _logger.Write(string.Format(""));
+                    foreach (ParameterFieldDefinition _ParameterFieldDefinition in _reportDoc.DataDefinition.ParameterFields)
+                    {
+                        if (!_ParameterFieldDefinition.IsLinked())
+                        {
+                            _logger.Write(string.Format("Applied Parameter '{0}' as MultiValue '{1}'", _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
+                            ParameterValues values = paraCore.GetParameterValues(_ParameterFieldDefinition);
+                            _ParameterFieldDefinition.ApplyCurrentValues(values);
+                        }
+                        else
+                        {
+                            _logger.Write(string.Format("Skipped '{1}' as MultiValue '{2}' Parameter in SubReport = '{0}' as its Linked to Main Report", _ParameterFieldDefinition.ReportName, _ParameterFieldDefinition.Name, _ParameterFieldDefinition.EnableAllowMultipleValue));
+                        }
+                        _logger.Write(string.Format(""));
+                    }
                 }
             }
         }
@@ -161,7 +179,7 @@ namespace CrystalReportsNinja
                 }
 
                 if (!specifiedFileName)
-                    _outputFilename = String.Format("{0}-{1}.{2}", _sourceFilename.Substring(0, _sourceFilename.LastIndexOf(".rpt")), DateTime.Now.ToString("yyyyMMddHHmmss"), fileExt);
+                    _outputFilename = String.Format("{0}-{1}.{2}", _sourceFilename.Substring(0, _sourceFilename.LastIndexOf(".rpt")), DateTime.Now.ToString("yyyyMMddHHmmssfff"), fileExt);
 
                 _logger.Write(string.Format("Output Filename : {0}", _outputFilename));
                 _logger.Write(string.Format("Output Format : {0}", _outputFormat));
@@ -356,27 +374,26 @@ namespace CrystalReportsNinja
                         {
                             _MailMessage.Bcc.Add(ReportArguments.MailBcc);
                         }
-                        SmtpClient smtpClient = new SmtpClient();
-                        smtpClient.Host = ReportArguments.SmtpServer;
-                        smtpClient.Port = ReportArguments.SmtpPort;
-                        smtpClient.EnableSsl = ReportArguments.SmtpSSL;
-
-                        ///if (ReportArguments.SmtpUN != null && ReportArguments.SmtpPW != null)
-                        if (ReportArguments.SmtpAuth == true)
+                        using (SmtpClient smtpClient = new SmtpClient())
                         {
-                                //Uses Specified credentials to send email
+                            smtpClient.Host = ReportArguments.SmtpServer;
+                            smtpClient.Port = ReportArguments.SmtpPort;
+                            smtpClient.EnableSsl = ReportArguments.SmtpSSL;
+
+                            if (ReportArguments.SmtpAuth == true)
+                            {
                                 smtpClient.UseDefaultCredentials = true;
                                 System.Net.NetworkCredential credentials = new System.Net.NetworkCredential(ReportArguments.SmtpUN, ReportArguments.SmtpPW);
                                 smtpClient.Credentials = credentials;
                             }
-                        else
+                            else
                             {
-                                //If Set - uses the currently logged in user credentials to send email otherwise sent using Anonymous
                                 smtpClient.UseDefaultCredentials = ReportArguments.SmtpAuth;
                             }
-                        smtpClient.Send(_MailMessage);
-                        _logger.Write(string.Format("Report {0} Emailed to : {1} CC'd to: {2} BCC'd to: {3}", _outputFilename, ReportArguments.MailTo, ReportArguments.MailCC, ReportArguments.MailBcc));
-                        _logger.Write(string.Format("SMTP Details: Server:{0}, Port:{1}, SSL:{2} Auth:{3}, UN:{4}", smtpClient.Host, smtpClient.Port, smtpClient.EnableSsl, ReportArguments.SmtpAuth, ReportArguments.SmtpUN));
+                            smtpClient.Send(_MailMessage);
+                            _logger.Write(string.Format("Report {0} Emailed to : {1} CC'd to: {2} BCC'd to: {3}", _outputFilename, ReportArguments.MailTo, ReportArguments.MailCC, ReportArguments.MailBcc));
+                            _logger.Write(string.Format("SMTP Details: Server:{0}, Port:{1}, SSL:{2} Auth:{3}, UN:{4}", smtpClient.Host, smtpClient.Port, smtpClient.EnableSsl, ReportArguments.SmtpAuth, ReportArguments.SmtpUN));
+                        }
                     }
 
                     if (!ReportArguments.EmailKeepFile)
@@ -428,7 +445,7 @@ namespace CrystalReportsNinja
             }
             finally
             {
-                _reportDoc.Close();
+                Dispose();
             }
         }
     }
