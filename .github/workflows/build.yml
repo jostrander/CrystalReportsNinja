@@ -17,16 +17,14 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      - name: Cache Chocolatey packages
+      - name: Cache Chocolatey download cache
         uses: actions/cache@v5
         with:
-          path: |
-            C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-            C:\ProgramData\chocolatey\lib\crystalreports-for-visualstudio
-          key: choco-cr-${{ runner.os }}-13.0.34
+          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+          key: choco-dl-${{ runner.os }}-cr-13.0.34
 
       - name: Install Crystal Reports for Visual Studio
-        run: choco install crystalreports-for-visualstudio -y --no-progress
+        run: choco install crystalreports-for-visualstudio -y --no-progress --force
 
       - name: Restore NuGet packages
         working-directory: Source
